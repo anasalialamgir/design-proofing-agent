@@ -1,20 +1,25 @@
 FROM golang:1.21-alpine AS builder
-WORKDIR /app
+WORKDIR /build
 
-# Copy all files from repository
-COPY . .
+# Copy all files from repository into a temporary folder
+COPY . /src
 
-# 1. Automatically create go.mod if it is missing
-RUN if [ ! -f go.mod ]; then go mod init design-proofing-agent; fi
+# Create a clean go.mod
+RUN go mod init design-proofing-agent
 
-# 2. Build from backend/ or root automatically
-RUN if [ -f ./backend/main.go ]; then \
-        CGO_ENABLED=0 GOOS=linux go build -o /main ./backend; \
+# Locate and isolate ONLY main.go
+RUN if [ -f /src/backend/main.go ]; then \
+        cp /src/backend/main.go ./main.go; \
+    elif [ -f /src/main.go ]; then \
+        cp /src/main.go ./main.go; \
     else \
-        CGO_ENABLED=0 GOOS=linux go build -o /main .; \
+        find /src -name "main.go" -exec cp {} ./main.go \; ; \
     fi
 
-# Final lightweight runner image
+# Build ONLY the self-contained main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /main ./main.go
+
+# Final lightweight runner
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /main .
