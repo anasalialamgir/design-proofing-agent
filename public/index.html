@@ -2,57 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Customer Proof Review Portal</title>
+  <title>Autonomous Design Proofing Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f4f8; margin: 0; padding: 20px; color: #333; }
-    .card { max-width: 650px; margin: 30px auto; background: white; padding: 28px; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
-    h2 { margin-top: 0; color: #1d3557; }
-    .proof-box { border: 2px dashed #00b4d8; padding: 14px; text-align: center; margin: 20px 0; background: #fafafa; border-radius: 6px; }
-    .proof-box img { max-width: 100%; height: auto; border: 1px solid #ddd; }
-    .btn-row { display: flex; gap: 12px; margin-top: 14px; }
-    .btn { flex: 1; padding: 12px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; font-size: 15px; }
+    body { font-family: sans-serif; background: #eef2f5; margin: 0; padding: 20px; }
+    .card { max-width: 650px; margin: auto; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h2 { color: #1d3557; margin-top: 0; }
+    .upload-box { border: 2px dashed #457b9d; padding: 20px; text-align: center; border-radius: 8px; background: #f8fafc; margin-bottom: 20px; }
+    .proof-box { display: none; margin-top: 20px; text-align: center; }
+    .canvas-container { position: relative; display: inline-block; max-width: 100%; }
+    canvas { max-width: 100%; height: auto; border: 1px solid #ccc; }
+    .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+    .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
+    .btn-primary { background: #1d3557; }
     .btn-approve { background: #2a9d8f; }
     .btn-reject { background: #e76f51; }
-    textarea { width: 95%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit; margin-top: 10px; }
-    .status-msg { margin-top: 16px; padding: 12px; border-radius: 6px; font-weight: bold; text-align: center; display: none; }
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
+    .status-msg { margin-top: 15px; padding: 12px; border-radius: 6px; font-weight: bold; text-align: center; display: none; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>🎨 Customer Proof Review Portal</h2>
-    <p>Please review your digital artwork proof below. Check the dimensions and cut borders before printing.</p>
-    
-    <div class="proof-box">
-      <img src="https://dummyimage.com/600x350/e0e0e0/555555.png&text=SAMPLE+DIGITAL+PROOF+-+NOT+FOR+PRINT" alt="Artwork Proof">
-      <p style="color: #666; font-size: 13px; margin-top: 8px;">Red border line indicates final cut trim area.</p>
-    </div>
+<div class="card">
+  <h2>🎨 Design Proofing & Approval Portal</h2>
+  <p>Upload a customer's design to test its print resolution and create a proof.</p>
 
-    <label for="notes"><strong>Revision Notes / Comments:</strong></label>
-    <textarea id="notes" placeholder="Optional notes or instructions for our design team..." rows="3"></textarea>
-
-    <div class="btn-row">
-      <button class="btn btn-approve" onclick="recordChoice('APPROVED')">✓ Approve Proof</button>
-      <button class="btn btn-reject" onclick="recordChoice('CHANGES REQUESTED')">✗ Request Changes</button>
-    </div>
-
-    <div id="statusBox" class="status-msg"></div>
+  <div class="upload-box">
+    <input type="file" id="imageInput" accept="image/*"><br><br>
+    <label>Target Print Width: <input type="number" id="widthIn" value="4" style="width: 50px;"> inches</label><br><br>
+    <button class="btn btn-primary" onclick="processProof()">Inspect & Generate Proof</button>
   </div>
 
-  <script>
-    function recordChoice(decision) {
-      const box = document.getElementById('statusBox');
-      box.style.display = 'block';
-      if (decision === 'APPROVED') {
-        box.style.background = '#d4edda';
-        box.style.color = '#155724';
-        box.innerText = "✓ Status: Proof has been Approved. Your order will proceed to print.";
+  <div id="proofSection" class="proof-box">
+    <div id="qualityBadge"></div>
+    <div class="canvas-container">
+      <canvas id="proofCanvas"></canvas>
+    </div>
+    <p style="font-size: 13px; color: #666;">Red border = Final cut line. Watermark protects unapproved proof.</p>
+
+    <div class="btn-row">
+      <button class="btn btn-approve" onclick="recordDecision('APPROVED')">✓ Approve Proof</button>
+      <button class="btn btn-reject" onclick="recordDecision('CHANGES REQUESTED')">✗ Request Changes</button>
+    </div>
+
+    <div id="statusResult" class="status-msg"></div>
+  </div>
+</div>
+
+<script>
+function processProof() {
+  const file = document.getElementById('imageInput').files[0];
+  if (!file) {
+    alert("Please select an image file first.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.getElementById('proofCanvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = img.width + 60;
+      canvas.height = img.height + 60;
+
+      // Draw background
+      ctx.fillStyle = "#f0f2f5";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw image
+      ctx.drawImage(img, 30, 30);
+
+      // Draw red trim cut line
+      ctx.strokeStyle = "#e63946";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(38, 38, img.width - 16, img.height - 16);
+
+      // Draw watermark
+      ctx.fillStyle = "rgba(220, 50, 50, 0.4)";
+      ctx.font = "bold " + Math.max(20, Math.floor(img.width / 12)) + "px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("UNAPPROVED PROOF", canvas.width / 2, canvas.height / 2);
+
+      // Calculate DPI
+      const targetWidth = parseFloat(document.getElementById('widthIn').value) || 4;
+      const dpi = Math.round(img.width / targetWidth);
+
+      const badge = document.getElementById('qualityBadge');
+      if (dpi >= 300) {
+        badge.innerHTML = '<span class="badge" style="background:#d4edda; color:#155724;">✓ Resolution: ' + dpi + ' DPI (High Quality - Sharp)</span>';
+      } else if (dpi >= 150) {
+        badge.innerHTML = '<span class="badge" style="background:#fff3cd; color:#856404;">⚠ Resolution: ' + dpi + ' DPI (Suboptimal - May look soft)</span>';
       } else {
-        box.style.background = '#f8d7da';
-        box.style.color = '#721c24';
-        box.innerText = "✗ Status: Changes Requested. Our team will review your comments.";
+        badge.innerHTML = '<span class="badge" style="background:#f8d7da; color:#721c24;">✕ Resolution: ' + dpi + ' DPI (Low Quality - Will print blurry!)</span>';
       }
-    }
-  </script>
+
+      document.getElementById('proofSection').style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function recordDecision(decision) {
+  const res = document.getElementById('statusResult');
+  res.style.display = 'block';
+  if (decision === 'APPROVED') {
+    res.style.background = '#d4edda';
+    res.style.color = '#155724';
+    res.innerText = "✓ Status: Proof APPROVED for printing.";
+  } else {
+    res.style.background = '#f8d7da';
+    res.style.color = '#721c24';
+    res.innerText = "✗ Status: Revision or changes requested by customer.";
+  }
+}
+</script>
 </body>
 </html>
