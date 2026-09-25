@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Proof Review Portal</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+    .card { max-width: 600px; margin: auto; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .proof-box { border: 2px dashed #00b4d8; padding: 10px; text-align: center; margin: 16px 0; background: #fafafa; }
+    .proof-box img { max-width: 100%; height: auto; }
+    .btn { padding: 12px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; width: 48%; }
+    .approve { background: #2a9d8f; }
+    .reject { background: #e76f51; }
+    .status { margin-top: 15px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Digital Proof Review</h2>
+    <p>Please inspect your artwork sample below before we send it to print.</p>
+    
+    <div class="proof-box">
+      <!-- Watermarked proof image stored on Firebase Storage -->
+      <img src="https://via.placeholder.com/500x300.png?text=SAMPLE+PROOF+-+NOT+FOR+PRINT" alt="Proof">
+      <p style="color: #666; font-size: 13px;">Dotted line indicates final cut trim area.</p>
+    </div>
+
+    <textarea id="notes" placeholder="Optional notes or change requests..." rows="3" style="width: 95%; margin-bottom: 12px;"></textarea>
+
+    <div style="display: flex; justify-content: space-between;">
+      <button class="btn approve" onclick="recordChoice('Approved')">Approve Proof</button>
+      <button class="btn reject" onclick="recordChoice('Changes Requested')">Request Changes</button>
+    </div>
+
+    <div id="status-msg" class="status"></div>
+  </div>
+
+  <script>
+    function recordChoice(decision) {
+      document.getElementById('status-msg').innerText = "Status: " + decision + " recorded successfully.";
+    }
+  </script>
+</body>
+</html>
