@@ -1,25 +1,25 @@
-# Stage 1: Build the Go application
 FROM golang:1.21-alpine AS builder
-
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy go.mod and go.sum (if they exist, otherwise copy all)
+# Copy all files from repository
 COPY . .
 
-# Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./main.go
+# 1. Automatically create go.mod if it is missing
+RUN if [ ! -f go.mod ]; then go mod init design-proofing-agent; fi
 
-# Stage 2: Create a lightweight runtime image
+# 2. Build from backend/ or root automatically
+RUN if [ -f ./backend/main.go ]; then \
+        CGO_ENABLED=0 GOOS=linux go build -o /main ./backend; \
+    else \
+        CGO_ENABLED=0 GOOS=linux go build -o /main .; \
+    fi
+
+# Final lightweight runner image
 FROM alpine:latest
-
 WORKDIR /app
+COPY --from=builder /main .
 
-# Copy the pre-built binary from the builder stage
-COPY --from=builder /app/main .
-
-# Expose the port the app runs on
 EXPOSE 8080
+ENV PORT=8080
 
-# Command to run the executable
 CMD ["./main"]
