@@ -1,0 +1,25 @@
+type PreflightNotice {
+  severity: String!
+  message: String!
+}
+
+type ProofReport {
+  minEffectiveDpi: Int
+  notices: [PreflightNotice!]!
+}
+
+type Submission {
+  id: ID!
+  orderId: String!
+  status: String!
+  previewUrl: String!
+  report: ProofReport
+}
+
+type Query {
+  getProof(token: String!): Submission
+}
+
+type Mutation {
+  submitDecision(submissionId: ID!, decision: String!, notes: String): Boolean!
+}
