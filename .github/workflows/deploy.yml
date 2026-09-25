@@ -21,8 +21,20 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "ERROR: The secret FIREBASE_SERVICE_ACCOUNT is empty or missing in GitHub Settings -> Secrets!"
+            exit 1
+          fi
+
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          PROJECT_ID=$(node -e 'console.log(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT).project_id)')
-          echo "Deploying to Firebase Project: $PROJECT_ID"
-          npx firebase-tools deploy --only hosting --project "$PROJECT_ID"
+          
+          PROJECT_ID=$(node -e 'try { console.log(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT).project_id); } catch(e) { process.exit(1); }')
+          
+          if [ -z "$PROJECT_ID" ]; then
+            echo "ERROR: The secret FIREBASE_SERVICE_ACCOUNT is not valid JSON."
+            exit 1
+          fi
+
+          echo "Deploying to Firebase project: $PROJECT_ID"
+          npx --yes firebase-tools deploy --only hosting --project "$PROJECT_ID"
